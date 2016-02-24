@@ -116,6 +116,9 @@ function Slot(container, screensize) {
 	this.label = slotConfig.label || false;
 	this.outOfPage = slotConfig.outOfPage || false;
 	this.lazyLoad = slotConfig.lazyLoad || false;
+	this.sticky = slotConfig.sticky || false;
+	this.stickyPosition = slotConfig.stickyPosition || false;
+	this.stickyTimeout = slotConfig.stickyTimeout || 3000;
 	this.companion = (slotConfig.companion === false ? false : true);
 	this.collapseEmpty = slotConfig.collapseEmpty;
 	this.chartbeat = slotConfig.chartbeat || config('chartbeat');

@@ -4,6 +4,53 @@ var config = require('./config');
 var Slot = require('./slot');
 var elementvis = require('o-element-visibility');
 var screensize = null;
+var timers = {};
+
+
+function setStickyStyles(slot, reset) {
+  slot.outer.style.width = reset ? '' : slot.outer.clientWidth + 'px';
+  slot.outer.style.height = reset ? '' : slot.outer.clientHeight + 'px';
+  slot.inner.style.position = reset ? '' : 'fixed';
+  slot.inner.style[slot.stickyPosition] = reset ? '' : '0';
+  slot.inner.style.left = reset ? '' : '50%';
+  slot.inner.style.transform = reset ? '' : 'translateX(-50%)';
+}
+
+function stick(slot) {
+  if(!slot.unsticked && !slot.sticked) {
+    setStickyStyles(slot);
+    slot.sticked = true;
+
+    if(!timers[slot.name]){
+      timers[slot.name] = window.setTimeout(function(){
+        slot.unsticked = true;
+        unstick(slot);
+      }, slot.stickyTimeout);
+    }
+
+  }
+}
+
+function unstick(slot) {
+  setStickyStyles(slot, true);
+  slot.sticked = false;
+
+  if(timers[slot.name]){
+    window.clearTimeout(timers[slot.name]);
+    delete timers[slot.name];
+  }
+}
+
+function shouldStick(slot){
+  console.log(slot)
+  if(slot.stickyPosition === "top" && slot.elementvis.top < document.body.scrollTop && slot.inviewport){
+      return true;
+  }
+  if(slot.stickyPosition === "bottom" && slot.elementvis.inview && slot.elementvis.percentage === 100){
+      return true;
+  }
+  return false;
+}
 
 /**
 * The Slots instance tracks all ad slots on the page
@@ -11,7 +58,20 @@ var screensize = null;
 * provides utlity methods that act on all slots
 * @constructor
 */
+
 function Slots() {
+  var slots = this;
+  window.addEventListener('oViewport.scroll', function(){
+    slots.forEach(function(slot){
+      if(slot.sticky){
+        if(shouldStick(slot)){
+          stick(slot);
+        } else {
+          unstick(slot);
+        }
+      }
+    });
+  })
 }
 
 function invokeMethodOnSlots(names, method, callback) {
