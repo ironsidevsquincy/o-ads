@@ -11,6 +11,7 @@
 var config = require('../config');
 var utils = require('../utils');
 var targeting = require('../targeting');
+var slots = require('../slots');
 var breakpoints = false;
 /*
 //###########################
@@ -30,6 +31,7 @@ function init() {
 	utils.on('render', onRender);
 	utils.on('refresh', onRefresh);
 	utils.on('resize', onResize);
+	utils.on('allSlotsInitialised', onAllSlotsInitialised.bind(null, gptConfig));
 	googletag.cmd.push(setup.bind(null, gptConfig));
 }
 
@@ -85,6 +87,7 @@ function setRenderingMode(gptConfig) {
 		googletag.pubads().enableSyncRendering();
 	} else if (rendering === 'sra') {
 		googletag.pubads().enableSingleRequest();
+		googletag.pubads().disableInitialLoad();
 	} else {
 		googletag.pubads().enableAsyncRendering();
 	}
@@ -97,7 +100,6 @@ function setRenderingMode(gptConfig) {
 * @lends GPT
 */
 function setPageTargeting(targeting) {
-
 	function setTargeting(key, value) {
 		googletag.pubads().setTargeting(key, value);
 	}
@@ -188,7 +190,7 @@ function onReady(slotMethods, event) {
 			.setTargeting()
 			.setURL();
 
-			if (!slot.defer && slot.hasValidSize()) {
+			if (slot.hasValidSize()) {
 				slot.display();
 			}
 		}.bind(null, slot));
@@ -199,11 +201,11 @@ function onReady(slotMethods, event) {
 */
 function onRender(event) {
 	var slot = event.detail.slot;
-	if (utils.isFunction(slot.display)) {
-		slot.display();
-	} else {
-		slot.defer = false;
-	}
+	// if (utils.isFunction(slot.refresh)) {
+	// 	slot.refresh();
+	// }
+		googletag.pubads().refresh();
+
 }
 
 /*
@@ -250,11 +252,18 @@ function onRenderEnded(event) {
 	detail.lineItemId = event.lineItemId;
 	detail.serviceName = event.serviceName;
 	detail.iframe = document.getElementById(iframeId);
-	if(detail.size) {
-		detail.iframe.style.width = detail.size[0] + 'px';
-		detail.iframe.style.height = detail.size[1] + 'px';
-	}
+
 	utils.broadcast('rendered', data);
+}
+
+/*
+* onAllSlotsInitialised event is fired when initSlot has been called on all slots present within the initial page DOM
+* once all inital page slots have been initialised, if we are in SRA mode we call refresh globally on all slots to fill the slots
+*/
+function onAllSlotsInitialised(gptConfig) {
+	if (gptConfig.rendering === "sra") {
+		googletag.cmd.push(function() { googletag.pubads().refresh()} );
+	}
 }
 
 /*
@@ -300,13 +309,11 @@ var slotMethods = {
 				var slot = event.detail.slot;
 				var screensize = event.detail.screensize;
 
-				updatePageTargeting({ res: screensize });
-
 				if (slot.hasValidSize(screensize) && !slot.responsiveCreative) {
 					/* istanbul ignore else  */
 					if (slot.gpt.iframe) {
 						slot.fire('refresh');
-					} else if (!this.defer) {
+					} else {
 						slot.display();
 					}
 				}
@@ -469,7 +476,9 @@ function updateCorrelator() {
 	});
 }
 
-function updatePageTargeting(override) {
+module.exports.init = init;
+module.exports.updateCorrelator = updateCorrelator;
+module.exports.updatePageTargeting = function(override) {
 	if (window.googletag) {
 		var params = utils.isPlainObject(override) ? override : targeting.get();
 		setPageTargeting(params);
@@ -477,11 +486,7 @@ function updatePageTargeting(override) {
 	else {
 		utils.log.warn('Attempting to set page targeting before the GPT library has initialized');
 	}
-}
-
-module.exports.init = init;
-module.exports.updateCorrelator = updateCorrelator;
-module.exports.updatePageTargeting = updatePageTargeting;
+};
 
 module.exports.debug = function(){
 	var log = utils.log;

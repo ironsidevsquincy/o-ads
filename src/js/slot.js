@@ -107,7 +107,7 @@ function Slot(container, screensize) {
 
 	// default configuration properties
 	this.server = 'gpt';
-	this.defer = false;
+	//this.defer = false;
 
 	// global slots configuration
 	this.targeting = slotConfig.targeting || {};
@@ -180,7 +180,7 @@ Slot.prototype.getAttributes = function() {
 Slot.prototype.initLazyLoad = function() {
 	/* istanbul ignore else  */
 	if (this.lazyLoad) {
-		this.defer = true;
+	//	this.defer = true;
 		utils.once('inview', function(slot) {
 			slot.fire('render');
 		}.bind(null, this), this.container);

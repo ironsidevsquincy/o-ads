@@ -4,6 +4,7 @@ var config = require('./config');
 var Slot = require('./slot');
 var elementvis = require('o-element-visibility');
 var screensize = null;
+var slotInitialisedCount = 0;
 
 /**
 * The Slots instance tracks all ad slots on the page
@@ -56,26 +57,6 @@ function run(slots, action, name) {
 	}
 }
 
-function findFormatBySize(size) {
-	if(!size) {
-		return false;
-	}
-	var formats = config('formats');
-	for(var prop in formats) {
-		/* istanbul ignore else  */
-		if(formats.hasOwnProperty(prop)) {
-
-			var sizes = formats[prop].sizes;
-			sizes = utils.isArray(sizes[0]) ? sizes : [sizes];
-			var match = sizes.filter(function(s) {
-				return (s[0] === parseInt(size[0]) && s[1] === parseInt(size[1]));
-			});
-			if(match.length) {
-				return prop;
-			}
-		}
-	}
-}
 /**
 * Given a slot name or an array of slot names will collapse the slots using the collapse method on the slot
 */
@@ -214,8 +195,6 @@ Slots.prototype.initRendered = function() {
 		if (slot) {
 			utils.extend(slot[slot.server], event.detail[slot.server]);
 			var size = event.detail.gpt.size;
-			var format = findFormatBySize(size);
-			slot.setFormatLoaded(format);
 			slot.maximise(size);
 			slot.fire('complete', event.detail);
 		}
@@ -306,6 +285,11 @@ Slots.prototype.forEach = function(fn) {
 	return this;
 };
 
+var getSlotCount = function() {
+	var slotCount = document.querySelectorAll('.o-ads, [data-o-ads-name]').length;
+	return slotCount;
+}
+
 /*
 * Initialise slots
 */
@@ -315,6 +299,7 @@ Slots.prototype.init = function() {
 	this.initRendered();
 	this.initResponsive();
 	this.initPostMessage();
+  Slots.prototype.slotCount = getSlotCount();
 };
 
 Slots.prototype.timers = {};
